@@ -171,6 +171,8 @@ public final class ScreenCaptureService extends Service {
         projectionCallback = new MediaProjection.Callback() {
             @Override
             public void onStop() {
+                // The projection is already invalid here; release its resources immediately.
+                stopCapture();
                 stopSelf();
             }
         };
