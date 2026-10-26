@@ -110,6 +110,10 @@ public final class DetectionOverlay extends View {
         float bestDistance = Float.MAX_VALUE;
         float centerX = getWidth() / 2f;
         float centerY = getHeight() / 2f;
+        float fovRadiusDp = preferences.getInt("fov_radius_dp", 180);
+        float fovRadiusPx = Math.max(80f, Math.min(320f, fovRadiusDp))
+                * getResources().getDisplayMetrics().density;
+        float fovRadiusSquared = fovRadiusPx * fovRadiusPx;
 
         for (Item item : visibleItems) {
             if (!"person".equalsIgnoreCase(item.label)) continue;
@@ -118,7 +122,8 @@ public final class DetectionOverlay extends View {
             float dx = tx - centerX;
             float dy = ty - centerY;
             float distance = dx * dx + dy * dy;
-            if (distance < bestDistance) {
+            // The FOV is a visual guide only; it never moves the in-game crosshair.
+            if (distance <= fovRadiusSquared && distance < bestDistance) {
                 bestDistance = distance;
                 selectedPerson = item;
             }
@@ -127,6 +132,7 @@ public final class DetectionOverlay extends View {
         // Visual guidance only; this overlay never changes the game's input.
         if (drawGuide) {
             guidePaint.setColor(Color.argb(170, 99, 220, 190));
+            canvas.drawCircle(centerX, centerY, fovRadiusPx, guidePaint);
             canvas.drawCircle(centerX, centerY, 28f, guidePaint);
             canvas.drawLine(centerX - 40f, centerY, centerX - 14f, centerY, guidePaint);
             canvas.drawLine(centerX + 14f, centerY, centerX + 40f, centerY, guidePaint);
