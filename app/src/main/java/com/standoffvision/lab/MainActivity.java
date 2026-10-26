@@ -3,6 +3,7 @@ package com.standoffvision.lab;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -15,20 +16,25 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
     private static final int REQUEST_OVERLAY = 1001;
     private static final int REQUEST_CAPTURE = 1002;
+    private static final String PREFS_NAME = "vision_settings";
 
     private MediaProjectionManager projectionManager;
+    private SharedPreferences preferences;
     private TextView statusView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         projectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         buildUi();
     }
 
@@ -58,7 +64,7 @@ public class MainActivity extends Activity {
         root.addView(title, params(0, 0, 0, 8));
 
         TextView description = new TextView(this);
-        description.setText("Первый прототип экранного компьютерного зрения: захват изображения, локальная модель EfficientDet-Lite0 и прозрачные рамки поверх экрана.");
+        description.setText("Экранное компьютерное зрение: захват изображения, локальная модель EfficientDet-Lite0 и прозрачный overlay поверх приложений. Настройки отображения применяются без перезапуска захвата.");
         description.setTextColor(Color.rgb(190, 199, 213));
         description.setTextSize(15);
         description.setLineSpacing(dp(3), 1.0f);
@@ -84,6 +90,46 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Захват остановлен", Toast.LENGTH_SHORT).show();
         });
 
+        TextView settingsHeading = new TextView(this);
+        settingsHeading.setText("НАСТРОЙКИ OVERLAY");
+        settingsHeading.setTextColor(Color.WHITE);
+        settingsHeading.setTextSize(13);
+        settingsHeading.setTypeface(Typeface.DEFAULT_BOLD);
+        root.addView(settingsHeading, params(0, 0, 0, 8));
+
+        addSwitch(root, "Рамки объектов", "draw_boxes", true);
+        addSwitch(root, "Подписи и confidence", "draw_labels", true);
+        addSwitch(root, "Центральный ориентир и линия к ближайшему person",
+                "draw_guide", true);
+        addSwitch(root, "Показывать только person", "persons_only", false);
+
+        TextView confidenceLabel = new TextView(this);
+        confidenceLabel.setTextColor(Color.rgb(190, 199, 213));
+        confidenceLabel.setTextSize(14);
+        confidenceLabel.setPadding(0, dp(8), 0, 0);
+        root.addView(confidenceLabel, params(0, 0, 0, 2));
+
+        SeekBar confidenceBar = new SeekBar(this);
+        confidenceBar.setMax(55);
+        int initialConfidence = clamp(preferences.getInt("min_confidence_percent", 35), 35, 90);
+        confidenceBar.setProgress(initialConfidence - 35);
+        confidenceLabel.setText("Минимальная уверенность: " + initialConfidence + "%");
+        confidenceBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int threshold = progress + 35;
+                confidenceLabel.setText("Минимальная уверенность: " + threshold + "%");
+                preferences.edit().putInt("min_confidence_percent", threshold).apply();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+        root.addView(confidenceBar, params(0, 0, 0, 18));
+
         TextView heading = new TextView(this);
         heading.setText("ЧТО ТЕСТИРУЕМ");
         heading.setTextColor(Color.WHITE);
@@ -95,8 +141,8 @@ public class MainActivity extends Activity {
         details.setText(
                 "• MediaProjection: системное разрешение на захват экрана\n" +
                 "• TensorFlow Lite: распознавание объектов локально на устройстве\n" +
-                "• Overlay: рамки, центральный ориентир и подсветка ближайшего объекта класса person\n\n" +
-                "Модель обучена на COCO, а не на Standoff 2. На игровых персонажах она может не находить цели — позже потребуется отдельная модель на размеченных игровых кадрах. Прототип не внедряется в процесс игры и не отправляет игровые касания автоматически.");
+                "• Overlay: рамки, подписи, FPS, confidence и визуальный ориентир\n\n" +
+                "Модель обучена на COCO, а не на Standoff 2, поэтому игровые персонажи могут распознаваться нестабильно. Для повышения точности потребуется модель, обученная на размеченных игровых кадрах. Этот прототип анализирует видимое изображение экрана: он не видит объекты, закрытые стенами, не меняет игровые скины и не автоматизирует касания.");
         details.setTextColor(Color.rgb(165, 176, 193));
         details.setTextSize(13);
         details.setLineSpacing(dp(4), 1.0f);
@@ -105,6 +151,22 @@ public class MainActivity extends Activity {
         root.addView(details, params(0, 0, 0, 0));
 
         setContentView(scroll);
+    }
+
+    private void addSwitch(LinearLayout root, String label, String key, boolean defaultValue) {
+        Switch toggle = new Switch(this);
+        toggle.setText(label);
+        toggle.setTextColor(Color.rgb(220, 227, 237));
+        toggle.setTextSize(14);
+        toggle.setChecked(preferences.getBoolean(key, defaultValue));
+        toggle.setPadding(0, dp(5), 0, dp(5));
+        toggle.setOnCheckedChangeListener((buttonView, checked) ->
+                preferences.edit().putBoolean(key, checked).apply());
+        root.addView(toggle, params(0, 0, 0, 3));
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private void beginSetup() {
@@ -150,7 +212,7 @@ public class MainActivity extends Activity {
             } else {
                 startService(serviceIntent);
             }
-            statusView.setText("Статус: сервис запускается — смотри overlay на экране");
+            statusView.setText("Статус: сервис запускается — overlay появится поверх экрана");
         }
     }
 
