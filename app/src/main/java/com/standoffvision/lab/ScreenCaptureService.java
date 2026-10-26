@@ -35,6 +35,7 @@ import org.tensorflow.lite.task.core.BaseOptions;
 import org.tensorflow.lite.task.vision.detector.Detection;
 import org.tensorflow.lite.task.vision.detector.ObjectDetector;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -124,7 +125,7 @@ public final class ScreenCaptureService extends Service {
         return START_NOT_STICKY;
     }
 
-    private void initialiseDetector() {
+    private void initialiseDetector() throws IOException {
         ObjectDetector.ObjectDetectorOptions options = ObjectDetector.ObjectDetectorOptions.builder()
                 .setScoreThreshold(0.35f)
                 .setMaxResults(12)
