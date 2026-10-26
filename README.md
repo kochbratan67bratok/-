@@ -10,9 +10,13 @@ Open this repository in Android Studio with Android SDK 35 and JDK 17, or open *
 
 - Android MediaProjection capture with system consent.
 - TensorFlow Lite object detection running locally.
-- Transparent overlay with bounding boxes, labels, confidence scores, FPS, and a visual marker for the nearest detected COCO class "person".
+- Transparent overlay with bounding boxes, labels, confidence scores, FPS, a configurable visual FOV circle, and a marker for the nearest detected COCO class "person" inside the circle.
 - No root required.
 - The model is trained on COCO, not on Standoff 2 screenshots, so game characters may not be detected reliably. The next accuracy step is a custom model trained on labelled gameplay frames.
 - This prototype does not read hidden game memory, modify the game's process, or automate game touch input.
 
-See the source files and the GitHub Actions workflow in this repository.
+Push a tag beginning with `v` (for example, `v0.2.0`) to build an installable **debug APK** and attach it to a GitHub Release. The APK is debug-signed; this workflow does not create a Play Store production-signed build. You can also download CI debug artifacts from **Actions → Android debug APK**.
+
+The FOV circle and target marker are visual guidance only: no aiming, touch injection, game-memory access, or game-process modification is performed.
+
+See the source files and GitHub Actions workflows in this repository.
