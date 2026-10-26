@@ -39,6 +39,7 @@ public final class DetectionOverlay extends View {
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         boxPaint.setStyle(Paint.Style.STROKE);
         boxPaint.setStrokeWidth(4f);
+        textPaint.setColor(Color.WHITE);
         textPaint.setTextSize(28f);
         textPaint.setStyle(Paint.Style.FILL);
         textPaint.setShadowLayer(4f, 1f, 1f, Color.BLACK);
@@ -107,6 +108,8 @@ public final class DetectionOverlay extends View {
             canvas.drawCircle(tx, ty, 12f, guidePaint);
         }
 
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(28f);
         for (Item item : snapshot) {
             boolean person = "person".equalsIgnoreCase(item.label);
             boolean selected = person && item == selectedPerson;
