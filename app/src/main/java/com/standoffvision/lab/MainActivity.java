@@ -128,7 +128,33 @@ public class MainActivity extends Activity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) { }
         });
-        root.addView(confidenceBar, params(0, 0, 0, 18));
+        root.addView(confidenceBar, params(0, 0, 0, 10));
+
+        TextView fovLabel = new TextView(this);
+        fovLabel.setTextColor(Color.rgb(190, 199, 213));
+        fovLabel.setTextSize(14);
+        root.addView(fovLabel, params(0, 0, 0, 2));
+
+        SeekBar fovBar = new SeekBar(this);
+        fovBar.setMax(240);
+        int initialFov = clamp(preferences.getInt("fov_radius_dp", 180), 80, 320);
+        fovBar.setProgress(initialFov - 80);
+        fovLabel.setText("Радиус FOV: " + initialFov + " dp");
+        fovBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int radius = progress + 80;
+                fovLabel.setText("Радиус FOV: " + radius + " dp");
+                preferences.edit().putInt("fov_radius_dp", radius).apply();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+        root.addView(fovBar, params(0, 0, 0, 18));
 
         TextView heading = new TextView(this);
         heading.setText("ЧТО ТЕСТИРУЕМ");
