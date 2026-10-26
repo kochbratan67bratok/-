@@ -16,6 +16,13 @@ import java.util.Locale;
 public final class DetectionOverlay extends View {
     private static final String PREFS_NAME = "vision_settings";
 
+    static {
+        System.loadLibrary("vision_native");
+    }
+
+    private static native int nativeNearestPoint(float[] points, float centerX,
+                                                 float centerY, float radius);
+
     public static final class Item {
         public final RectF bounds;
         public final String label;
@@ -107,25 +114,31 @@ public final class DetectionOverlay extends View {
         }
 
         Item selectedPerson = null;
-        float bestDistance = Float.MAX_VALUE;
         float centerX = getWidth() / 2f;
         float centerY = getHeight() / 2f;
+        float fovRadius = Math.max(80f, Math.min(320f,
+                preferences.getInt("fov_radius_dp", 180)))
+                * getResources().getDisplayMetrics().density;
 
+        List<Item> people = new ArrayList<>();
         for (Item item : visibleItems) {
-            if (!"person".equalsIgnoreCase(item.label)) continue;
-            float tx = (item.bounds.left + item.bounds.right) * 0.5f * sx;
-            float ty = (item.bounds.top + item.bounds.bottom) * 0.5f * sy;
-            float dx = tx - centerX;
-            float dy = ty - centerY;
-            float distance = dx * dx + dy * dy;
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                selectedPerson = item;
-            }
+            if ("person".equalsIgnoreCase(item.label)) people.add(item);
+        }
+        float[] personCenters = new float[people.size() * 2];
+        for (int i = 0; i < people.size(); i++) {
+            Item item = people.get(i);
+            personCenters[i * 2] = (item.bounds.left + item.bounds.right) * 0.5f * sx;
+            personCenters[i * 2 + 1] = (item.bounds.top + item.bounds.bottom) * 0.5f * sy;
+        }
+        int selectedIndex = nativeNearestPoint(personCenters, centerX, centerY, fovRadius);
+        if (selectedIndex >= 0 && selectedIndex < people.size()) {
+            selectedPerson = people.get(selectedIndex);
         }
 
-        // Visual guidance only; this overlay never changes the game's input.
+        // C++ computes the nearest in-FOV marker; this overlay never changes game input.
         if (drawGuide) {
+            guidePaint.setColor(Color.argb(95, 99, 220, 190));
+            canvas.drawCircle(centerX, centerY, fovRadius, guidePaint);
             guidePaint.setColor(Color.argb(170, 99, 220, 190));
             canvas.drawCircle(centerX, centerY, 28f, guidePaint);
             canvas.drawLine(centerX - 40f, centerY, centerX - 14f, centerY, guidePaint);
